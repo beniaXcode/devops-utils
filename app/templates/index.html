@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Utility Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">DevOps Utility Dashboard</h1>
+        
+        <!-- System Info -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">System Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h3 class="text-lg font-medium mb-2">CPU Usage</h3>
+                    <div id="cpuUsage" class="text-2xl font-bold text-blue-600">-</div>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h3 class="text-lg font-medium mb-2">Memory Usage</h3>
+                    <div id="memoryUsage" class="text-2xl font-bold text-green-600">-</div>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h3 class="text-lg font-medium mb-2">Disk Usage</h3>
+                    <div id="diskUsage" class="text-2xl font-bold text-purple-600">-</div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <p id="hostname" class="text-gray-600">Hostname: -</p>
+                <p id="platform" class="text-gray-600">Platform: -</p>
+                <p id="pythonVersion" class="text-gray-600">Python Version: -</p>
+            </div>
+        </div>
+
+        <!-- Network Info -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Network Interfaces</h2>
+            <div id="networkInfo" class="space-y-4">
+                <!-- Network info will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Ping Tool -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Ping Tool</h2>
+            <div class="flex space-x-4">
+                <input type="text" id="pingHost" placeholder="Enter hostname or IP" 
+                       class="flex-1 p-2 border rounded-lg">
+                <button onclick="pingHost()" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    Ping
+                </button>
+            </div>
+            <div id="pingResult" class="mt-4 text-gray-600">
+                <!-- Ping results will be shown here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateSystemInfo() {
+            fetch('/api/system')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('cpuUsage').textContent = `${data.cpu_percent}%`;
+                    document.getElementById('memoryUsage').textContent = `${data.memory_percent}%`;
+                    document.getElementById('diskUsage').textContent = `${data.disk_percent}%`;
+                    document.getElementById('hostname').textContent = `Hostname: ${data.hostname}`;
+                    document.getElementById('platform').textContent = `Platform: ${data.platform}`;
+                    document.getElementById('pythonVersion').textContent = `Python Version: ${data.python_version}`;
+                });
+        }
+
+        function updateNetworkInfo() {
+            fetch('/api/network')
+                .then(response => response.json())
+                .then(data => {
+                    const networkInfo = document.getElementById('networkInfo');
+                    networkInfo.innerHTML = '';
+                    data.forEach(iface => {
+                        networkInfo.innerHTML += `
+                            <div class="p-4 bg-gray-50 rounded-lg">
+                                <p class="font-medium">Interface: ${iface.interface}</p>
+                                <p>IP: ${iface.ip}</p>
+                                <p>Netmask: ${iface.netmask}</p>
+                            </div>
+                        `;
+                    });
+                });
+        }
+
+        function pingHost() {
+            const host = document.getElementById('pingHost').value;
+            const resultDiv = document.getElementById('pingResult');
+            resultDiv.textContent = 'Pinging...';
+            
+            fetch(`/api/ping/${host}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        resultDiv.textContent = `Response time: ${data.response_time}ms`;
+                    } else {
+                        resultDiv.textContent = `Error: ${data.message}`;
+                    }
+                })
+                .catch(error => {
+                    resultDiv.textContent = `Error: ${error.message}`;
+                });
+        }
+
+        // Update system and network info every 5 seconds
+        updateSystemInfo();
+        updateNetworkInfo();
+        setInterval(updateSystemInfo, 5000);
+        setInterval(updateNetworkInfo, 5000);
+    </script>
+</body>
+</html>
